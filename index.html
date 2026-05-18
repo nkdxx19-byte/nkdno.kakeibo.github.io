@@ -90,6 +90,18 @@
   input[type="date"] { padding: 9px 4px; font-size: 13px; letter-spacing: -0.5px; }
   select { padding-left: 4px; font-size: 13px; }
   
+  /* 収支カウント除外チェックボックス用 */
+  .checkbox-group {
+    display: none; background: #fff3e0; padding: 10px; border-radius: 6px; margin-bottom: 12px;
+    border: 1px solid #ffe0b2;
+  }
+  .checkbox-group label {
+    display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12px; font-weight: bold; color: #e65100; cursor: pointer;
+  }
+  .checkbox-group input[type="checkbox"] {
+    width: auto; margin: 0; transform: scale(1.2);
+  }
+  
   .btn-submit {
     width: 100%; padding: 12px; background: var(--primary); color: white; border: none;
     border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 5px;
@@ -122,14 +134,15 @@
   
   .item-details { display: flex; flex-direction: column; min-width: 0; }
   .item-cat { font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .item-memo-date { font-size: 11px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .item-acc-badge { font-size: 9px; background: #eee; padding: 2px 4px; border-radius: 4px; margin-right: 4px; }
+  .item-memo-date { font-size: 11px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; flex-wrap: wrap; gap: 2px;}
+  .item-acc-badge { font-size: 9px; background: #eee; padding: 2px 4px; border-radius: 4px; margin-right: 2px; }
+  .item-exclude-badge { font-size: 9px; background: #ffe0b2; color: #e65100; border: 1px solid #ffb74d; padding: 1px 4px; border-radius: 4px; margin-right: 2px;}
   
   .item-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   .item-amount { font-weight: bold; font-size: 15px; text-align: right; }
   .item-amount.expense { color: var(--expense); }
   .item-amount.income { color: var(--income); }
-  .item-amount.transfer { color: #333; } /* 振替用は黒 */
+  .item-amount.transfer { color: #333; }
   
   .action-btns { display: flex; gap: 4px; }
   .action-btns button { background: #f0f0f0; border: none; border-radius: 4px; padding: 6px; cursor: pointer; font-size: 12px; }
@@ -194,7 +207,7 @@
       <input type="month" id="monthInput" onchange="renderData()">
       <button onclick="changeMonth(1)">▶</button>
     </div>
-    <div style="font-size:12px; color:var(--text-sub); margin-bottom: 5px;">今月の収支（※移動は含みません）</div>
+    <div style="font-size:12px; color:var(--text-sub); margin-bottom: 5px;">今月の収支（※移動・集計外は含みません）</div>
     <div class="in-out-summary">
       <div class="summary-item">
         <span class="summary-label">収入</span>
@@ -265,6 +278,14 @@
       </div>
     </div>
     
+    <!-- 収入の場合のみ表示される除外設定 -->
+    <div class="checkbox-group" id="excludeSummaryArea">
+      <label>
+        <input type="checkbox" id="inputExclude">
+        この収入を今月の「収支(サマリー)」にカウントしない
+      </label>
+    </div>
+    
     <div class="form-group">
       <div style="flex: 1.2;">
         <label>金額 (円)</label>
@@ -272,7 +293,7 @@
       </div>
       <div style="flex: 1.8;">
         <label>メモ (任意)</label>
-        <input type="text" id="inputMemo" placeholder="買ったもの等">
+        <input type="text" id="inputMemo" placeholder="立て替え返金など">
       </div>
     </div>
     
@@ -378,16 +399,25 @@
     const catArea = document.getElementById('categoryArea');
     const normalAccArea = document.getElementById('normalAccountArea');
     const transAccArea = document.getElementById('transferAccountArea');
+    const excludeArea = document.getElementById('excludeSummaryArea');
 
     if (type === 'transfer') {
-      // 振替の場合はカテゴリと単一口座選択を隠し、移動元・移動先を表示
       catArea.style.display = 'none';
       normalAccArea.style.display = 'none';
       transAccArea.style.display = 'flex';
+      excludeArea.style.display = 'none';
+    } else if (type === 'income') {
+      catArea.style.display = 'block';
+      normalAccArea.style.display = 'block';
+      transAccArea.style.display = 'none';
+      excludeArea.style.display = 'block'; // 収入の場合のみ表示
+      updateCategorySelect();
     } else {
       catArea.style.display = 'block';
       normalAccArea.style.display = 'block';
       transAccArea.style.display = 'none';
+      excludeArea.style.display = 'none';
+      document.getElementById('inputExclude').checked = false; // 支出時はリセット
       updateCategorySelect();
     }
   }
@@ -439,13 +469,18 @@
     const date = document.getElementById('inputDate').value;
     const amount = parseInt(document.getElementById('inputAmount').value, 10);
     const memo = document.getElementById('inputMemo').value.trim();
+    const excludeFromSummary = (currentType === 'income') ? document.getElementById('inputExclude').checked : false;
 
     if (!date || isNaN(amount) || amount <= 0) {
       alert("日付と金額を正しく入力してください。");
       return;
     }
 
-    let t = { id: editingId ? editingId : Date.now(), type: currentType, date, amount, memo };
+    let t = { 
+      id: editingId ? editingId : Date.now(), 
+      type: currentType, 
+      date, amount, memo, excludeFromSummary 
+    };
 
     if (currentType === 'transfer') {
       const fromAcc = document.getElementById('transferFrom').value;
@@ -472,6 +507,7 @@
       transactions.push(t);
       document.getElementById('inputAmount').value = '';
       document.getElementById('inputMemo').value = '';
+      document.getElementById('inputExclude').checked = false; // 保存後にチェックを戻す
     }
 
     localStorage.setItem('kakeiboData', JSON.stringify(transactions));
@@ -492,6 +528,9 @@
     } else {
       updateCategorySelect(t.category);
       setAccount(t.accountId || 'cash'); 
+      if (t.type === 'income') {
+        document.getElementById('inputExclude').checked = !!t.excludeFromSummary;
+      }
     }
     
     document.getElementById('inputDate').value = t.date;
@@ -510,6 +549,7 @@
     editingId = null;
     document.getElementById('inputAmount').value = '';
     document.getElementById('inputMemo').value = '';
+    document.getElementById('inputExclude').checked = false;
     
     const card = document.getElementById('inputCard');
     card.classList.remove('editing');
@@ -547,8 +587,8 @@
       monthlyData.forEach(t => {
         const isTransfer = t.type === 'transfer';
 
-        // 振替は収支合計から除外
-        if (!isTransfer) {
+        // 振替と「集計対象外」の収入は収支合計から除外
+        if (!isTransfer && !t.excludeFromSummary) {
           if (t.type === 'income') income += t.amount;
           if (t.type === 'expense') {
             expense += t.amount;
@@ -563,7 +603,9 @@
         
         let displayCat = t.category;
         let displayAcc = isTransfer ? `${accountLabels[t.fromAcc]} ➔ ${accountLabels[t.toAcc]}` : accountLabels[t.accountId || 'cash'];
-        const memoHtml = t.memo ? ` - ${t.memo}` : '';
+        
+        const excludeBadge = t.excludeFromSummary ? `<span class="item-exclude-badge">集計外</span>` : '';
+        const memoHtml = t.memo ? `<span style="margin-left: 2px;">- ${t.memo}</span>` : '';
 
         listDiv.innerHTML += `
           <div class="list-item">
@@ -572,7 +614,10 @@
               <div class="item-details">
                 <span class="item-cat">${displayCat}</span>
                 <div class="item-memo-date">
-                  <span class="item-acc-badge" style="${isTransfer ? 'background:#e3f2fd;' : ''}">${displayAcc}</span>${dateStr}${memoHtml}
+                  <span class="item-acc-badge" style="${isTransfer ? 'background:#e3f2fd;' : ''}">${displayAcc}</span>
+                  ${excludeBadge}
+                  ${dateStr}
+                  ${memoHtml}
                 </div>
               </div>
             </div>
@@ -604,6 +649,7 @@
     let currentSavings = initBalances.savings;
 
     transactions.forEach(t => {
+      // 資産残高の計算は「集計外」であっても実際のお金は増えているため計算に含めます
       if (t.type === 'transfer') {
         if (t.fromAcc === 'cash') currentCash -= t.amount;
         if (t.fromAcc === 'bank') currentBank -= t.amount;
