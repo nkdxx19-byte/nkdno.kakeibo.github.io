@@ -4,9 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>シンプル家計簿</title>
-  <!-- アイコン画像の指定 -->
-<link rel="apple-touch-icon" href="kakeiboicon.png">
-<link rel="icon" href="kakeiboicon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
 <style>
   :root {
     --primary: #4CAF50;
@@ -40,7 +39,7 @@
     background: var(--bg-panel); padding: 12px 15px; border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px;
   }
-  .assets-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .assets-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 5px; }
   .assets-title { font-size: 12px; font-weight: bold; color: var(--text-sub); }
   .assets-grid { display: flex; gap: 10px; justify-content: space-between; }
   .asset-item { flex: 1; background: #f8f9fa; padding: 8px; border-radius: 8px; text-align: center; }
@@ -85,25 +84,28 @@
   .form-group > div { min-width: 0; } 
   label { display: block; font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
   
+
   input[type="number"], input[type="text"], input[type="date"], select {
-    width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;
-    box-sizing: border-box; font-size: 14px; font-family: inherit; background: white;
+    width: 100%; 
+    padding: 10px; 
+    border: 1px solid var(--border-color); 
+    border-radius: 6px;
+    box-sizing: border-box; 
+    font-size: 16px;
+    font-family: inherit; 
+    background: white;
   }
   
-  input[type="date"] { padding: 9px 4px; font-size: 13px; letter-spacing: -0.5px; }
-  select { padding-left: 4px; font-size: 13px; }
-  
+  /* iPhone用の微調整部分も同様に16pxに */
+  input[type="date"] { padding: 10px; font-size: 16px; }
+  select { padding: 10px; font-size: 16px; }  
   /* 収支カウント除外チェックボックス用 */
   .checkbox-group {
     display: none; background: #fff3e0; padding: 10px; border-radius: 6px; margin-bottom: 12px;
     border: 1px solid #ffe0b2;
   }
-  .checkbox-group label {
-    display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12px; font-weight: bold; color: #e65100; cursor: pointer;
-  }
-  .checkbox-group input[type="checkbox"] {
-    width: auto; margin: 0; transform: scale(1.2);
-  }
+  .checkbox-group label { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12px; font-weight: bold; color: #e65100; cursor: pointer; }
+  .checkbox-group input[type="checkbox"] { width: auto; margin: 0; transform: scale(1.2); }
   
   .btn-submit {
     width: 100%; padding: 12px; background: var(--primary); color: white; border: none;
@@ -117,7 +119,7 @@
     border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 8px; display: none;
   }
   .btn-secondary { background: #78909c; color: white; border: none; border-radius: 6px; padding: 10px; cursor: pointer; font-size: 14px; font-weight: bold; }
-  .btn-icon-small { background: transparent; border: none; cursor: pointer; color: var(--text-sub); font-size: 12px; padding: 4px; }
+  .btn-icon-small { background: #f0f0f0; border: none; border-radius: 6px; cursor: pointer; color: #333; font-size: 11px; padding: 6px 10px; font-weight: bold; }
 
   /* タブ切り替え */
   .tabs { display: flex; margin-bottom: 10px; gap: 10px; }
@@ -180,7 +182,7 @@
   .cat-edit-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color); background: #fafafa; }
   .cat-edit-item:last-child { border-bottom: none; }
   .cat-edit-item-left { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: bold; }
-  .cat-edit-item .btn-delete { color: var(--danger); font-size: 14px; background: #ffebee; border-radius: 4px; padding: 4px 8px; border: none; cursor: pointer; }
+  .cat-edit-item .btn-delete { color: var(--danger); font-size: 12px; background: #ffebee; border-radius: 4px; padding: 4px 8px; border: none; cursor: pointer; }
 
   .color-palette { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
   .color-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
@@ -196,7 +198,10 @@
   <div class="assets-card">
     <div class="assets-header">
       <span class="assets-title">💼 資産残高</span>
-      <button class="btn-icon-small" onclick="openBalanceModal()">⚙️ 初期残高設定</button>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-icon-small" onclick="openSubModal()">🔄 サブスク管理</button>
+        <button class="btn-icon-small" onclick="openBalanceModal()">⚙️ 初期残高</button>
+      </div>
     </div>
     <div class="assets-grid" id="assetsGrid">
       <!-- JSで描画 -->
@@ -318,6 +323,66 @@
 
 </div>
 
+<!-- サブスク管理モーダル -->
+<div id="subModal" class="modal-overlay">
+  <div class="modal-content">
+    <h2>🔄 サブスク・固定費の管理</h2>
+    <p style="font-size:11px; color:var(--text-sub); margin-top:0;">指定した次回支払日から、設定した頻度に合わせて自動で「支出」に記録されます。</p>
+    
+    <div class="cat-edit-list" id="subEditList"></div>
+    
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <label style="font-weight:bold; margin-bottom:8px;">＋ 新しいサブスクを追加</label>
+      
+      <div class="form-group" style="margin-bottom:8px;">
+        <div style="flex: 1.5;">
+          <label>サービス名</label>
+          <input type="text" id="newSubName" placeholder="例: Netflix, 年会費">
+        </div>
+        <div style="flex: 1;">
+          <label>金額(円)</label>
+          <input type="number" id="newSubAmount" placeholder="0" min="0">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:8px;">
+        <div style="flex: 1;">
+          <label>支払い頻度</label>
+          <select id="newSubFrequency">
+            <option value="1" selected>毎月</option>
+            <option value="3">3カ月ごと</option>
+            <option value="6">6カ月ごと</option>
+            <option value="12">毎年</option>
+          </select>
+        </div>
+        <div style="flex: 1.2;">
+          <label>次回支払日(初回)</label>
+          <input type="date" id="newSubDate">
+        </div>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 12px;">
+        <div style="flex: 1;">
+          <label>支払い元</label>
+          <select id="newSubAccount">
+            <option value="bank" selected>口座残高</option>
+            <option value="cash">手持ち</option>
+            <option value="savings">貯金枠</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label>カテゴリ</label>
+          <select id="newSubCategory"></select>
+        </div>
+      </div>
+      
+      <button class="btn-submit" onclick="addNewSub()" style="padding: 10px; font-size: 14px;">このサブスクを登録</button>
+    </div>
+    
+    <button class="btn-secondary" style="width: 100%; margin-top: 15px;" onclick="closeSubModal()">閉じる</button>
+  </div>
+</div>
+
 <!-- カテゴリ編集モーダル -->
 <div id="catModal" class="modal-overlay">
   <div class="modal-content">
@@ -375,10 +440,12 @@
   };
 
   const accountLabels = { 'cash': '手持ち', 'bank': '口座残高', 'savings': '貯金枠' };
+  const freqTextMap = { 1: '毎月', 3: '3カ月ごと', 6: '6カ月ごと', 12: '毎年' };
 
   let userCategories = JSON.parse(localStorage.getItem('kakeiboCategories')) || defaultCategories;
   let transactions = JSON.parse(localStorage.getItem('kakeiboData')) || [];
   let initBalances = JSON.parse(localStorage.getItem('kakeiboBalances')) || { cash: 0, bank: 0, savings: 0 };
+  let subscriptions = JSON.parse(localStorage.getItem('kakeiboSubs')) || [];
 
   let currentType = 'expense';
   let currentAccount = 'cash';
@@ -391,6 +458,59 @@
   const dd = String(today.getDate()).padStart(2, '0');
   document.getElementById('inputDate').value = `${yyyy}-${mm}-${dd}`;
   document.getElementById('monthInput').value = `${yyyy}-${mm}`;
+
+  // --- 初期化＆サブスク自動処理 ---
+  function init() {
+    processSubscriptions(); 
+    updateCategorySelect();
+    renderData();
+  }
+
+  function processSubscriptions() {
+    const todayObj = new Date();
+    todayObj.setHours(0,0,0,0);
+    let updated = false;
+
+    subscriptions.forEach(sub => {
+      let billingDate = new Date(sub.nextYear, sub.nextMonth - 1, sub.billingDay);
+      const freq = parseInt(sub.frequency || 1, 10); 
+      
+      let loopCount = 0;
+      // 次回支払日が今日以前になっていたら計上する
+      while (billingDate <= todayObj && loopCount < 24) {
+        const actualY = billingDate.getFullYear();
+        const actualM = String(billingDate.getMonth() + 1).padStart(2, '0');
+        const actualD = String(billingDate.getDate()).padStart(2, '0');
+
+        const t = {
+          id: Date.now() + Math.floor(Math.random() * 10000),
+          type: 'expense',
+          accountId: sub.accountId,
+          date: `${actualY}-${actualM}-${actualD}`,
+          category: sub.category,
+          amount: sub.amount,
+          memo: `[固定] ${sub.name}`,
+          excludeFromSummary: false
+        };
+        transactions.push(t);
+        updated = true;
+
+        // 指定された頻度の月数を足して次回支払日をセット
+        sub.nextMonth += freq;
+        while (sub.nextMonth > 12) {
+          sub.nextMonth -= 12; 
+          sub.nextYear++;
+        }
+        billingDate = new Date(sub.nextYear, sub.nextMonth - 1, sub.billingDay);
+        loopCount++;
+      }
+    });
+
+    if (updated) {
+      localStorage.setItem('kakeiboData', JSON.stringify(transactions));
+      localStorage.setItem('kakeiboSubs', JSON.stringify(subscriptions));
+    }
+  }
 
   // --- UI操作 ---
   function setType(type) {
@@ -405,22 +525,16 @@
     const excludeArea = document.getElementById('excludeSummaryArea');
 
     if (type === 'transfer') {
-      catArea.style.display = 'none';
-      normalAccArea.style.display = 'none';
-      transAccArea.style.display = 'flex';
-      excludeArea.style.display = 'none';
+      catArea.style.display = 'none'; normalAccArea.style.display = 'none';
+      transAccArea.style.display = 'flex'; excludeArea.style.display = 'none';
     } else if (type === 'income') {
-      catArea.style.display = 'block';
-      normalAccArea.style.display = 'block';
-      transAccArea.style.display = 'none';
-      excludeArea.style.display = 'block'; // 収入の場合のみ表示
+      catArea.style.display = 'block'; normalAccArea.style.display = 'block';
+      transAccArea.style.display = 'none'; excludeArea.style.display = 'block'; 
       updateCategorySelect();
     } else {
-      catArea.style.display = 'block';
-      normalAccArea.style.display = 'block';
-      transAccArea.style.display = 'none';
-      excludeArea.style.display = 'none';
-      document.getElementById('inputExclude').checked = false; // 支出時はリセット
+      catArea.style.display = 'block'; normalAccArea.style.display = 'block';
+      transAccArea.style.display = 'none'; excludeArea.style.display = 'none';
+      document.getElementById('inputExclude').checked = false; 
       updateCategorySelect();
     }
   }
@@ -475,31 +589,20 @@
     const excludeFromSummary = (currentType === 'income') ? document.getElementById('inputExclude').checked : false;
 
     if (!date || isNaN(amount) || amount <= 0) {
-      alert("日付と金額を正しく入力してください。");
-      return;
+      alert("日付と金額を正しく入力してください。"); return;
     }
 
-    let t = { 
-      id: editingId ? editingId : Date.now(), 
-      type: currentType, 
-      date, amount, memo, excludeFromSummary 
-    };
+    let t = { id: editingId ? editingId : Date.now(), type: currentType, date, amount, memo, excludeFromSummary };
 
     if (currentType === 'transfer') {
       const fromAcc = document.getElementById('transferFrom').value;
       const toAcc = document.getElementById('transferTo').value;
-      if (fromAcc === toAcc) {
-        alert("移動元と移動先が同じです。異なる場所を選択してください。");
-        return;
-      }
-      t.fromAcc = fromAcc;
-      t.toAcc = toAcc;
-      t.category = '資金移動';
+      if (fromAcc === toAcc) { alert("移動元と移動先が同じです。異なる場所を選択してください。"); return; }
+      t.fromAcc = fromAcc; t.toAcc = toAcc; t.category = '資金移動';
     } else {
       const category = document.getElementById('inputCategory').value;
       if (!category) { alert("カテゴリを選択してください。"); return; }
-      t.accountId = currentAccount;
-      t.category = category;
+      t.accountId = currentAccount; t.category = category;
     }
 
     if (editingId) {
@@ -510,7 +613,7 @@
       transactions.push(t);
       document.getElementById('inputAmount').value = '';
       document.getElementById('inputMemo').value = '';
-      document.getElementById('inputExclude').checked = false; // 保存後にチェックを戻す
+      document.getElementById('inputExclude').checked = false;
     }
 
     localStorage.setItem('kakeiboData', JSON.stringify(transactions));
@@ -521,21 +624,15 @@
   function editTransaction(id) {
     const t = transactions.find(x => x.id === id);
     if (!t) return;
-    
     editingId = id;
     setType(t.type);
-    
     if (t.type === 'transfer') {
       document.getElementById('transferFrom').value = t.fromAcc;
       document.getElementById('transferTo').value = t.toAcc;
     } else {
-      updateCategorySelect(t.category);
-      setAccount(t.accountId || 'cash'); 
-      if (t.type === 'income') {
-        document.getElementById('inputExclude').checked = !!t.excludeFromSummary;
-      }
+      updateCategorySelect(t.category); setAccount(t.accountId || 'cash'); 
+      if (t.type === 'income') document.getElementById('inputExclude').checked = !!t.excludeFromSummary;
     }
-    
     document.getElementById('inputDate').value = t.date;
     document.getElementById('inputAmount').value = t.amount;
     document.getElementById('inputMemo').value = t.memo;
@@ -550,10 +647,8 @@
 
   function cancelEdit() {
     editingId = null;
-    document.getElementById('inputAmount').value = '';
-    document.getElementById('inputMemo').value = '';
+    document.getElementById('inputAmount').value = ''; document.getElementById('inputMemo').value = '';
     document.getElementById('inputExclude').checked = false;
-    
     const card = document.getElementById('inputCard');
     card.classList.remove('editing');
     document.getElementById('submitBtn').textContent = '記録する';
@@ -580,7 +675,6 @@
 
     let income = 0, expense = 0;
     const categoryTotals = {}; 
-
     const listDiv = document.getElementById('transactionList');
     listDiv.innerHTML = '';
 
@@ -589,8 +683,6 @@
     } else {
       monthlyData.forEach(t => {
         const isTransfer = t.type === 'transfer';
-
-        // 振替と「集計対象外」の収入は収支合計から除外
         if (!isTransfer && !t.excludeFromSummary) {
           if (t.type === 'income') income += t.amount;
           if (t.type === 'expense') {
@@ -606,7 +698,6 @@
         
         let displayCat = t.category;
         let displayAcc = isTransfer ? `${accountLabels[t.fromAcc]} ➔ ${accountLabels[t.toAcc]}` : accountLabels[t.accountId || 'cash'];
-        
         const excludeBadge = t.excludeFromSummary ? `<span class="item-exclude-badge">集計外</span>` : '';
         const memoHtml = t.memo ? `<span style="margin-left: 2px;">- ${t.memo}</span>` : '';
 
@@ -618,9 +709,7 @@
                 <span class="item-cat">${displayCat}</span>
                 <div class="item-memo-date">
                   <span class="item-acc-badge" style="${isTransfer ? 'background:#e3f2fd;' : ''}">${displayAcc}</span>
-                  ${excludeBadge}
-                  ${dateStr}
-                  ${memoHtml}
+                  ${excludeBadge}${dateStr}${memoHtml}
                 </div>
               </div>
             </div>
@@ -647,12 +736,8 @@
   }
 
   function renderAssets() {
-    let currentCash = initBalances.cash;
-    let currentBank = initBalances.bank;
-    let currentSavings = initBalances.savings;
-
+    let currentCash = initBalances.cash; let currentBank = initBalances.bank; let currentSavings = initBalances.savings;
     transactions.forEach(t => {
-      // 資産残高の計算は「集計外」であっても実際のお金は増えているため計算に含めます
       if (t.type === 'transfer') {
         if (t.fromAcc === 'cash') currentCash -= t.amount;
         if (t.fromAcc === 'bank') currentBank -= t.amount;
@@ -676,28 +761,15 @@
     });
 
     document.getElementById('assetsGrid').innerHTML = `
-      <div class="asset-item">
-        <div class="asset-label">手持ち</div>
-        <div class="asset-val" style="color:#333;">¥${currentCash.toLocaleString()}</div>
-      </div>
-      <div class="asset-item">
-        <div class="asset-label">口座残高</div>
-        <div class="asset-val" style="color:#1976D2;">¥${currentBank.toLocaleString()}</div>
-      </div>
-      <div class="asset-item">
-        <div class="asset-label">貯金枠</div>
-        <div class="asset-val" style="color:#388E3C;">¥${currentSavings.toLocaleString()}</div>
-      </div>
+      <div class="asset-item"><div class="asset-label">手持ち</div><div class="asset-val" style="color:#333;">¥${currentCash.toLocaleString()}</div></div>
+      <div class="asset-item"><div class="asset-label">口座残高</div><div class="asset-val" style="color:#1976D2;">¥${currentBank.toLocaleString()}</div></div>
+      <div class="asset-item"><div class="asset-label">貯金枠</div><div class="asset-val" style="color:#388E3C;">¥${currentSavings.toLocaleString()}</div></div>
     `;
   }
 
   function renderCategorySummary(catTotals, totalExpense) {
-    const catDiv = document.getElementById('categoryList');
-    catDiv.innerHTML = '';
-    if (totalExpense === 0) {
-      catDiv.innerHTML = `<div class="empty-msg">支出データがありません。</div>`;
-      return;
-    }
+    const catDiv = document.getElementById('categoryList'); catDiv.innerHTML = '';
+    if (totalExpense === 0) { catDiv.innerHTML = `<div class="empty-msg">支出データがありません。</div>`; return; }
     const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
     sortedCats.forEach(([catName, amount]) => {
       const percent = Math.round((amount / totalExpense) * 100);
@@ -705,72 +777,139 @@
       catDiv.innerHTML += `
         <div class="cat-bar-container">
           <div class="cat-bar-header">
-            <div class="cat-label-wrap">
-              <div class="cat-small-badge" style="background-color: ${catColor};"></div>
-              <span>${catName}</span>
-            </div>
+            <div class="cat-label-wrap"><div class="cat-small-badge" style="background-color: ${catColor};"></div><span>${catName}</span></div>
             <span>¥${amount.toLocaleString()} <span style="color:#888; font-size:11px;">(${percent}%)</span></span>
           </div>
-          <div class="cat-bar-bg">
-            <div class="cat-bar-fill" style="width: ${percent}%; background-color: ${catColor};"></div>
-          </div>
+          <div class="cat-bar-bg"><div class="cat-bar-fill" style="width: ${percent}%; background-color: ${catColor};"></div></div>
         </div>
       `;
     });
   }
 
+  // --- サブスク管理モーダル ---
+  function openSubModal() {
+    renderSubList();
+    
+    // 日付の初期値を今日にセット
+    const t = new Date();
+    const y = t.getFullYear();
+    const m = String(t.getMonth() + 1).padStart(2, '0');
+    const d = String(t.getDate()).padStart(2, '0');
+    document.getElementById('newSubDate').value = `${y}-${m}-${d}`;
+    
+    const select = document.getElementById('newSubCategory'); select.innerHTML = '';
+    userCategories['expense'].forEach(cat => {
+      let opt = document.createElement('option'); opt.value = cat.name; opt.textContent = cat.name; select.appendChild(opt);
+    });
+    document.getElementById('subModal').classList.add('active');
+  }
+  
+  function closeSubModal() { document.getElementById('subModal').classList.remove('active'); }
+  
+  function renderSubList() {
+    const listDiv = document.getElementById('subEditList'); listDiv.innerHTML = '';
+    if (subscriptions.length === 0) {
+      listDiv.innerHTML = `<div style="padding:15px; text-align:center; font-size:12px; color:#888;">登録されているサブスクはありません。</div>`; return;
+    }
+    subscriptions.forEach(sub => {
+      const freqText = freqTextMap[sub.frequency || 1];
+      const nextDateStr = `${sub.nextYear}年${sub.nextMonth}月${sub.billingDay}日`;
+      
+      listDiv.innerHTML += `
+        <div class="cat-edit-item" style="padding: 12px 10px;">
+          <div class="cat-edit-item-left" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+            <div style="font-size:14px; font-weight:bold;">${sub.name} <span style="font-size:11px; color:#888; font-weight:normal;">(${freqText} / 次回: ${nextDateStr})</span></div>
+            <div style="font-size:11px; font-weight:normal; color:#666;">
+              <span class="item-acc-badge">${accountLabels[sub.accountId]}</span> ¥${sub.amount.toLocaleString()} / ${sub.category}
+            </div>
+          </div>
+          <button class="btn-delete" onclick="deleteSub(${sub.id})">削除</button>
+        </div>
+      `;
+    });
+  }
+
+  function addNewSub() {
+    const name = document.getElementById('newSubName').value.trim();
+    const amount = parseInt(document.getElementById('newSubAmount').value, 10);
+    const dateVal = document.getElementById('newSubDate').value;
+    const accountId = document.getElementById('newSubAccount').value;
+    const category = document.getElementById('newSubCategory').value;
+    const frequency = parseInt(document.getElementById('newSubFrequency').value, 10);
+
+    if (!name || isNaN(amount) || amount <= 0 || !dateVal) {
+      alert("正しく入力してください。次回支払日は必須です。"); return;
+    }
+
+    const [y, m, d] = dateVal.split('-').map(Number);
+
+    const sub = { 
+      id: Date.now(), 
+      name, 
+      amount, 
+      billingDay: d, 
+      accountId, 
+      category, 
+      frequency, 
+      nextYear: y, 
+      nextMonth: m 
+    };
+    
+    subscriptions.push(sub);
+    localStorage.setItem('kakeiboSubs', JSON.stringify(subscriptions));
+
+    document.getElementById('newSubName').value = '';
+    document.getElementById('newSubAmount').value = '';
+    document.getElementById('newSubFrequency').value = '1';
+    
+    renderSubList();
+    alert(`「${name}」を登録しました。\n${y}年${m}月${d}日から、指定した頻度で自動記録されます。`);
+  }
+
+  function deleteSub(id) {
+    if (confirm("この設定を削除しますか？\n（過去に自動記録された支出履歴は消えません）")) {
+      subscriptions = subscriptions.filter(s => s.id !== id);
+      localStorage.setItem('kakeiboSubs', JSON.stringify(subscriptions));
+      renderSubList();
+    }
+  }
+
   // --- 初期残高設定モーダル ---
   function openBalanceModal() {
-    document.getElementById('initCash').value = initBalances.cash;
-    document.getElementById('initBank').value = initBalances.bank;
-    document.getElementById('initSavings').value = initBalances.savings;
+    document.getElementById('initCash').value = initBalances.cash; document.getElementById('initBank').value = initBalances.bank; document.getElementById('initSavings').value = initBalances.savings;
     document.getElementById('balanceModal').classList.add('active');
   }
   function closeBalanceModal() { document.getElementById('balanceModal').classList.remove('active'); }
   function saveInitialBalances() {
-    initBalances.cash = parseInt(document.getElementById('initCash').value, 10) || 0;
-    initBalances.bank = parseInt(document.getElementById('initBank').value, 10) || 0;
-    initBalances.savings = parseInt(document.getElementById('initSavings').value, 10) || 0;
-    localStorage.setItem('kakeiboBalances', JSON.stringify(initBalances));
-    renderAssets();
-    closeBalanceModal();
+    initBalances.cash = parseInt(document.getElementById('initCash').value, 10) || 0; initBalances.bank = parseInt(document.getElementById('initBank').value, 10) || 0; initBalances.savings = parseInt(document.getElementById('initSavings').value, 10) || 0;
+    localStorage.setItem('kakeiboBalances', JSON.stringify(initBalances)); renderAssets(); closeBalanceModal();
   }
 
-  // --- カテゴリ編集モーダル関連 ---
+  // --- カテゴリ編集モーダル ---
   function setupColorPalette() {
-    const palette = document.getElementById('catColorPalette');
-    palette.innerHTML = '';
+    const palette = document.getElementById('catColorPalette'); palette.innerHTML = '';
     PRESET_COLORS.forEach((color, index) => {
-      let btn = document.createElement('div');
-      btn.className = 'color-btn';
-      btn.style.backgroundColor = color;
-      if (index === 0) btn.classList.add('selected'); 
-      btn.onclick = () => selectColor(color, btn);
-      palette.appendChild(btn);
+      let btn = document.createElement('div'); btn.className = 'color-btn'; btn.style.backgroundColor = color;
+      if (index === 0) btn.classList.add('selected'); btn.onclick = () => selectColor(color, btn); palette.appendChild(btn);
     });
   }
   function selectColor(color, btnElement) {
-    selectedNewColor = color;
-    document.querySelectorAll('.color-palette .color-btn').forEach(b => b.classList.remove('selected'));
-    btnElement.classList.add('selected');
+    selectedNewColor = color; document.querySelectorAll('.color-palette .color-btn').forEach(b => b.classList.remove('selected')); btnElement.classList.add('selected');
   }
   function openCatModal() {
     document.getElementById('catModalTitle').textContent = currentType === 'expense' ? '支出カテゴリの編集' : '収入カテゴリの編集';
-    renderCatEditList(); setupColorPalette(); document.getElementById('newCatName').value = '';
-    document.getElementById('catModal').classList.add('active');
+    renderCatEditList(); setupColorPalette(); document.getElementById('newCatName').value = ''; document.getElementById('catModal').classList.add('active');
   }
   function closeCatModal() { document.getElementById('catModal').classList.remove('active'); }
   
   function renderCatEditList() {
-    const listDiv = document.getElementById('catEditList');
-    listDiv.innerHTML = '';
+    const listDiv = document.getElementById('catEditList'); listDiv.innerHTML = '';
     userCategories[currentType].forEach((cat, index) => {
       const firstChar = Array.from(cat.name)[0];
       listDiv.innerHTML += `
         <div class="cat-edit-item">
           <div class="cat-edit-item-left">
-            <div class="item-color-badge" style="width: 28px; height: 28px; font-size: 12px; background-color: ${cat.color};">${firstChar}</div>
-            ${cat.name}
+            <div class="item-color-badge" style="width: 28px; height: 28px; font-size: 12px; background-color: ${cat.color};">${firstChar}</div>${cat.name}
           </div>
           <button class="btn-delete" onclick="deleteCategory(${index})">削除</button>
         </div>
@@ -782,21 +921,16 @@
     if (!name) return alert('カテゴリ名を入力してください。');
     if (userCategories[currentType].find(c => c.name === name)) return alert('そのカテゴリはすでに存在します。');
     userCategories[currentType].push({ name: name, color: selectedNewColor });
-    saveCategories();
-    document.getElementById('newCatName').value = '';
-    renderCatEditList(); updateCategorySelect(); renderData();
+    saveCategories(); document.getElementById('newCatName').value = ''; renderCatEditList(); updateCategorySelect(); renderData();
   }
   function deleteCategory(index) {
     if (userCategories[currentType].length <= 1) return alert('カテゴリは最低1つ必要です。');
-    if (confirm('このカテゴリを削除しますか？')) {
-      userCategories[currentType].splice(index, 1);
-      saveCategories(); renderCatEditList(); updateCategorySelect(); renderData();
-    }
+    if (confirm('このカテゴリを削除しますか？')) { userCategories[currentType].splice(index, 1); saveCategories(); renderCatEditList(); updateCategorySelect(); renderData(); }
   }
   function saveCategories() { localStorage.setItem('kakeiboCategories', JSON.stringify(userCategories)); }
 
-  updateCategorySelect();
-  renderData();
+  // 起動時の実行
+  init();
 
 </script>
 </body>
