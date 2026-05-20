@@ -220,6 +220,27 @@
     color: white;
     text-shadow: 0 2px 5px rgba(0,0,0,0.6);
   }
+
+/* スマートフォンでも確実に背景を固定するための設定 */
+  body.has-bg-image::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: var(--bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: -1; /* パネルより奥に配置 */
+    will-change: transform; /* スクロール時のちらつき防止 */
+  }
+  
+  body.has-bg-image {
+    background-color: transparent;
+  }
+
 </style>
 </head>
 <body>
@@ -1083,13 +1104,12 @@
 
     // 背景画像の適用
     if (currentAppearance.bgImage) {
-      document.body.style.backgroundImage = `url(${currentAppearance.bgImage})`;
-      document.body.style.backgroundSize = 'cover';
-      document.body.style.backgroundPosition = 'center';
-      document.body.style.backgroundAttachment = 'fixed';
+      // CSS変数に画像URLを渡し、擬似要素で背景を描画（スマホでのスクロール固定対策）
+      document.documentElement.style.setProperty('--bg-image', `url(${currentAppearance.bgImage})`);
+      document.body.style.backgroundImage = 'none'; // 旧仕様をクリア
       document.body.classList.add('has-bg-image');
     } else {
-      document.body.style.backgroundImage = 'none';
+      document.documentElement.style.removeProperty('--bg-image');
       document.body.classList.remove('has-bg-image');
     }
   }
