@@ -246,17 +246,17 @@
 <body>
 
 <div class="app-container">
-  <h1>シンプル家計簿</h1>
+  
+    <div style="position: relative; display: flex; justify-content: center; align-items: center; margin: 10px 0 15px 0; min-height: 35px;">
+    <h1 style="margin: 0; text-align: center; font-size: 1.4em; width: 100%;">マイ家計簿</h1>
+    <button class="btn-icon-small" onclick="openAppearanceModal()" title="外観設定" style="position: absolute; right: 0;">🎨 外観設定</button>
+  </div>
 
   <!-- 資産残高パネル -->
   <div class="assets-card">
-   <div class="assets-header">
+    <div class="assets-header">
       <span class="assets-title">💼 資産残高</span>
-      <div style="display:flex; gap:6px;">
-        <button class="btn-icon-small" onclick="openAppearanceModal()">🎨 外観設定</button>
-        <button class="btn-icon-small" onclick="openSubModal()">🔄 サブスク管理</button>
-        <button class="btn-icon-small" onclick="openBalanceModal()">⚙️ 初期残高</button>
-      </div>
+      <button class="btn-icon-small" onclick="openBalanceModal()">⚙️ 初期残高</button>
     </div>
     <div class="assets-grid" id="assetsGrid">
       <!-- JSで描画 -->
@@ -289,6 +289,11 @@
 
   <!-- 入力フォーム -->
   <div class="input-card" id="inputCard">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <span style="font-size: 12px; font-weight: bold; color: var(--text-sub);">📝 収支の記録</span>
+      <button class="btn-icon-small" onclick="openSubModal()">🔄 サブスク管理</button>
+    </div>
+    
     <div class="toggle-group type-toggle" id="typeToggle">
       <button class="active" data-type="expense" onclick="setType('expense')">支出</button>
       <button data-type="income" onclick="setType('income')">収入</button>
