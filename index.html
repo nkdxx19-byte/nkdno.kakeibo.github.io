@@ -96,6 +96,7 @@
     background: white;
   }
   
+
   input[type="date"] {
     width: 90%;
     padding: 10px 4px;
@@ -199,6 +200,26 @@
   .color-palette { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
   .color-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
   .color-btn.selected { border-color: #333; transform: scale(1.15); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+/* 外観設定用スタイル */
+  .color-theme-btn {
+    width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); 
+    cursor: pointer; transition: transform 0.2s;
+  }
+  .color-theme-btn:hover { transform: scale(1.1); }
+  
+  /* 背景画像が設定された時にパネルを少し透過させて見やすくする */
+  body.has-bg-image .assets-card,
+  body.has-bg-image .summary-card,
+  body.has-bg-image .input-card,
+  body.has-bg-image .list-card,
+  body.has-bg-image .category-summary {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  body.has-bg-image h1 {
+    color: white;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.6);
+  }
 </style>
 </head>
 <body>
@@ -208,9 +229,10 @@
 
   <!-- 資産残高パネル -->
   <div class="assets-card">
-    <div class="assets-header">
+   <div class="assets-header">
       <span class="assets-title">💼 資産残高</span>
       <div style="display:flex; gap:6px;">
+        <button class="btn-icon-small" onclick="openAppearanceModal()">🎨 外観設定</button>
         <button class="btn-icon-small" onclick="openSubModal()">🔄 サブスク管理</button>
         <button class="btn-icon-small" onclick="openBalanceModal()">⚙️ 初期残高</button>
       </div>
@@ -388,7 +410,8 @@
         </div>
       </div>
       
-      <button class="btn-submit" onclick="addNewSub()" style="padding: 10px; font-size: 14px;">このサブスクを登録</button>
+      <button class="btn-submit" id="subSubmitBtn" onclick="saveSub()" style="padding: 10px; font-size: 14px;">このサブスクを登録</button>
+      <button class="btn-cancel" id="subCancelBtn" onclick="cancelSubEdit()" style="display:none; width:100%; margin-top:8px; padding:10px;">編集をキャンセル</button>
     </div>
     
     <button class="btn-secondary" style="width: 100%; margin-top: 15px;" onclick="closeSubModal()">閉じる</button>
@@ -432,6 +455,43 @@
     
     <button class="btn-submit" onclick="saveInitialBalances()">保存する</button>
     <button class="btn-cancel" style="display:block; margin-top:10px;" onclick="closeBalanceModal()">キャンセル</button>
+  </div>
+</div>
+
+<div id="appearanceModal" class="modal-overlay">
+  <div class="modal-content">
+    <h2>🎨 外観設定</h2>
+    
+    <div style="margin-bottom: 20px;">
+      <label style="font-weight:bold; display:block; margin-bottom:10px;">テーマカラー</label>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="color-theme-btn" style="background:#4CAF50;" onclick="setTheme('default')" title="グリーン"></button>
+        <button class="color-theme-btn" style="background:#2196F3;" onclick="setTheme('blue')" title="ブルー"></button>
+        <button class="color-theme-btn" style="background:#E91E63;" onclick="setTheme('pink')" title="ピンク"></button>
+        <button class="color-theme-btn" style="background:#FF9800;" onclick="setTheme('orange')" title="オレンジ"></button>
+        <button class="color-theme-btn" style="background:#9C27B0;" onclick="setTheme('purple')" title="パープル"></button>
+        <button class="color-theme-btn" style="background:#607D8B;" onclick="setTheme('bluegrey')" title="シック"></button>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <label style="font-weight:bold; display:block; margin-bottom:10px;">パネルの背景色と透明度</label>
+      <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+        <input type="color" id="panelColorInput" onchange="updatePanelColor()" style="cursor: pointer; width: 50px; height: 35px; padding: 0; border: none; background: transparent;" title="色を選択">
+        <label style="font-size: 13px; display:flex; align-items:center; gap:5px; flex:1;">
+          透明度: <input type="range" id="panelOpacityInput" min="0" max="1" step="0.05" onchange="updatePanelColor()" oninput="updatePanelColor()" style="width: 100%;">
+        </label>
+      </div>
+      <button class="btn-cancel" style="display:block; width:100%; margin:0; padding:8px;" onclick="resetPanelColor()">白(標準)に戻す</button>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <label style="font-weight:bold; display:block; margin-bottom:10px;">背景画像</label>
+      <input type="file" id="bgImageInput" accept="image/*" style="margin-bottom: 10px; font-size: 14px;">
+      <button class="btn-cancel" style="display:block; width:100%; margin:0;" onclick="clearBgImage()">画像をクリア</button>
+    </div>
+
+    <button class="btn-secondary" style="width: 100%; margin-top: 15px;" onclick="closeAppearanceModal()">閉じる</button>
   </div>
 </div>
 
@@ -798,16 +858,12 @@
     });
   }
 
-  // --- サブスク管理モーダル ---
+// --- サブスク管理モーダル ---
+  let editingSubId = null; // 編集中のサブスクIDを保持
+
   function openSubModal() {
     renderSubList();
-    
-    // 日付の初期値を今日にセット
-    const t = new Date();
-    const y = t.getFullYear();
-    const m = String(t.getMonth() + 1).padStart(2, '0');
-    const d = String(t.getDate()).padStart(2, '0');
-    document.getElementById('newSubDate').value = `${y}-${m}-${d}`;
+    cancelSubEdit(); // 開くときにフォームをリセット
     
     const select = document.getElementById('newSubCategory'); select.innerHTML = '';
     userCategories['expense'].forEach(cat => {
@@ -835,13 +891,59 @@
               <span class="item-acc-badge">${accountLabels[sub.accountId]}</span> ¥${sub.amount.toLocaleString()} / ${sub.category}
             </div>
           </div>
-          <button class="btn-delete" onclick="deleteSub(${sub.id})">削除</button>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-secondary" style="font-size:11px; padding:4px 8px; border-radius:4px; background:#1976D2;" onclick="editSub(${sub.id})">編集</button>
+            <button class="btn-delete" onclick="deleteSub(${sub.id})">削除</button>
+          </div>
         </div>
       `;
     });
   }
 
-  function addNewSub() {
+  // サブスクを編集モードにする
+  function editSub(id) {
+    const sub = subscriptions.find(s => s.id === id);
+    if (!sub) return;
+    editingSubId = id;
+
+    // フォームに値をセット
+    document.getElementById('newSubName').value = sub.name;
+    document.getElementById('newSubAmount').value = sub.amount;
+    document.getElementById('newSubFrequency').value = sub.frequency || 1;
+    document.getElementById('newSubDate').value = `${sub.nextYear}-${String(sub.nextMonth).padStart(2, '0')}-${String(sub.billingDay).padStart(2, '0')}`;
+    document.getElementById('newSubAccount').value = sub.accountId || 'bank';
+    
+    // カテゴリの選択肢が生成されているか確認してからセット
+    const catSelect = document.getElementById('newSubCategory');
+    if(catSelect.options.length > 0) catSelect.value = sub.category;
+
+    // ボタンの見た目を「更新」に変更
+    const submitBtn = document.getElementById('subSubmitBtn');
+    submitBtn.textContent = '更新する';
+    submitBtn.style.background = '#ff9800'; // オレンジ色
+    document.getElementById('subCancelBtn').style.display = 'block';
+  }
+
+  // サブスク編集モードをキャンセル
+  function cancelSubEdit() {
+    editingSubId = null;
+    document.getElementById('newSubName').value = '';
+    document.getElementById('newSubAmount').value = '';
+    document.getElementById('newSubFrequency').value = '1';
+    
+    // 日付を今日にリセット
+    const t = new Date();
+    document.getElementById('newSubDate').value = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+
+    // ボタンの見た目を「登録」に戻す
+    const submitBtn = document.getElementById('subSubmitBtn');
+    submitBtn.textContent = 'このサブスクを登録';
+    submitBtn.style.background = 'var(--primary)';
+    document.getElementById('subCancelBtn').style.display = 'none';
+  }
+
+  // 新規登録＆更新処理
+  function saveSub() {
     const name = document.getElementById('newSubName').value.trim();
     const amount = parseInt(document.getElementById('newSubAmount').value, 10);
     const dateVal = document.getElementById('newSubDate').value;
@@ -855,33 +957,30 @@
 
     const [y, m, d] = dateVal.split('-').map(Number);
 
-    const sub = { 
-      id: Date.now(), 
-      name, 
-      amount, 
-      billingDay: d, 
-      accountId, 
-      category, 
-      frequency, 
-      nextYear: y, 
-      nextMonth: m 
-    };
-    
-    subscriptions.push(sub);
-    localStorage.setItem('kakeiboSubs', JSON.stringify(subscriptions));
+    if (editingSubId) {
+      // 既存の更新
+      const index = subscriptions.findIndex(s => s.id === editingSubId);
+      if (index !== -1) {
+        subscriptions[index] = { ...subscriptions[index], name, amount, billingDay: d, accountId, category, frequency, nextYear: y, nextMonth: m };
+      }
+      alert(`「${name}」を更新しました。`);
+    } else {
+      // 新規登録
+      const sub = { id: Date.now(), name, amount, billingDay: d, accountId, category, frequency, nextYear: y, nextMonth: m };
+      subscriptions.push(sub);
+      alert(`「${name}」を登録しました。\n${y}年${m}月${d}日から、指定した頻度で自動記録されます。`);
+    }
 
-    document.getElementById('newSubName').value = '';
-    document.getElementById('newSubAmount').value = '';
-    document.getElementById('newSubFrequency').value = '1';
-    
+    localStorage.setItem('kakeiboSubs', JSON.stringify(subscriptions));
+    cancelSubEdit();
     renderSubList();
-    alert(`「${name}」を登録しました。\n${y}年${m}月${d}日から、指定した頻度で自動記録されます。`);
   }
 
   function deleteSub(id) {
     if (confirm("この設定を削除しますか？\n（過去に自動記録された支出履歴は消えません）")) {
       subscriptions = subscriptions.filter(s => s.id !== id);
       localStorage.setItem('kakeiboSubs', JSON.stringify(subscriptions));
+      if (editingSubId === id) cancelSubEdit(); // 編集中のものを消した場合リセット
       renderSubList();
     }
   }
@@ -940,6 +1039,121 @@
     if (confirm('このカテゴリを削除しますか？')) { userCategories[currentType].splice(index, 1); saveCategories(); renderCatEditList(); updateCategorySelect(); renderData(); }
   }
   function saveCategories() { localStorage.setItem('kakeiboCategories', JSON.stringify(userCategories)); }
+
+
+// --- 外観設定機能 (テーマ・背景画像・パネル色) ---
+  const themes = {
+    'default': { primary: '#4CAF50', dark: '#388E3C' },
+    'blue': { primary: '#2196F3', dark: '#1976D2' },
+    'pink': { primary: '#E91E63', dark: '#C2185B' },
+    'orange': { primary: '#FF9800', dark: '#F57C00' },
+    'purple': { primary: '#9C27B0', dark: '#7B1FA2' },
+    'bluegrey': { primary: '#607D8B', dark: '#455A64' }
+  };
+
+  let currentAppearance = JSON.parse(localStorage.getItem('kakeiboAppearance')) || { theme: 'default', bgImage: null };
+  // パネル色の初期値
+  if (currentAppearance.panelColorHex === undefined) currentAppearance.panelColorHex = '#ffffff';
+  if (currentAppearance.panelOpacity === undefined) currentAppearance.panelOpacity = 1;
+
+  // HEXカラー(#ffffff)をRGB(255,255,255)に変換する関数
+  function hexToRgb(hex) {
+    const bigint = parseInt(hex.replace('#', ''), 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `${r}, ${g}, ${b}`;
+  }
+
+  function applyAppearance() {
+    // テーマカラーの適用
+    const theme = themes[currentAppearance.theme] || themes['default'];
+    document.documentElement.style.setProperty('--primary', theme.primary);
+    document.documentElement.style.setProperty('--primary-dark', theme.dark);
+
+    // パネル色の適用
+    const rgb = hexToRgb(currentAppearance.panelColorHex);
+    document.documentElement.style.setProperty('--bg-panel', `rgba(${rgb}, ${currentAppearance.panelOpacity})`);
+    
+    // UI側のつまみやカラーパレットに現在の値を同期させる
+    const colorInput = document.getElementById('panelColorInput');
+    const opacityInput = document.getElementById('panelOpacityInput');
+    if (colorInput) colorInput.value = currentAppearance.panelColorHex;
+    if (opacityInput) opacityInput.value = currentAppearance.panelOpacity;
+
+    // 背景画像の適用
+    if (currentAppearance.bgImage) {
+      document.body.style.backgroundImage = `url(${currentAppearance.bgImage})`;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      document.body.style.backgroundAttachment = 'fixed';
+      document.body.classList.add('has-bg-image');
+    } else {
+      document.body.style.backgroundImage = 'none';
+      document.body.classList.remove('has-bg-image');
+    }
+  }
+
+  function openAppearanceModal() {
+    document.getElementById('appearanceModal').classList.add('active');
+  }
+  function closeAppearanceModal() {
+    document.getElementById('appearanceModal').classList.remove('active');
+  }
+
+  function setTheme(themeKey) {
+    currentAppearance.theme = themeKey;
+    saveAndApplyAppearance();
+  }
+
+  // パネルの色・透明度が変更されたときの処理
+  function updatePanelColor() {
+    currentAppearance.panelColorHex = document.getElementById('panelColorInput').value;
+    currentAppearance.panelOpacity = parseFloat(document.getElementById('panelOpacityInput').value);
+    saveAndApplyAppearance();
+  }
+
+  // パネル色を白にリセットする処理
+  function resetPanelColor() {
+    currentAppearance.panelColorHex = '#ffffff';
+    currentAppearance.panelOpacity = 1;
+    saveAndApplyAppearance();
+  }
+
+  function clearBgImage() {
+    currentAppearance.bgImage = null;
+    document.getElementById('bgImageInput').value = '';
+    saveAndApplyAppearance();
+  }
+
+  // 画像ファイルが選択された時の処理
+  const bgImageInput = document.getElementById('bgImageInput');
+  if(bgImageInput) {
+    bgImageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        currentAppearance.bgImage = event.target.result;
+        saveAndApplyAppearance();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function saveAndApplyAppearance() {
+    try {
+      localStorage.setItem('kakeiboAppearance', JSON.stringify(currentAppearance));
+      applyAppearance();
+    } catch (e) {
+      alert('画像のデータサイズが大きすぎて保存できませんでした。もう少し容量の小さい画像を選択してください。');
+      clearBgImage();
+    }
+  }
+
+  // スクリプト読み込み時に外観設定を適用
+  applyAppearance();
 
   // 起動時の実行
   init();
