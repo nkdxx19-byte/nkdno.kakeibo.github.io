@@ -769,7 +769,13 @@
 
     const currentMonth = document.getElementById('monthInput').value; 
     const monthlyData = transactions.filter(t => t.date.startsWith(currentMonth));
-    monthlyData.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // 日付が新しい順 ＞ 日付が同じなら登録時間(id)が新しい順(降順)にソート
+    monthlyData.sort((a, b) => {
+      const dateDiff = new Date(b.date) - new Date(a.date);
+      if (dateDiff !== 0) return dateDiff;
+      return b.id - a.id; 
+    });
 
     let income = 0, expense = 0;
     const categoryTotals = {}; 
@@ -866,22 +872,51 @@
   }
 
   function renderCategorySummary(catTotals, totalExpense) {
-    const catDiv = document.getElementById('categoryList'); catDiv.innerHTML = '';
-    if (totalExpense === 0) { catDiv.innerHTML = `<div class="empty-msg">支出データがありません。</div>`; return; }
+    const catDiv = document.getElementById('categoryList'); 
+    catDiv.innerHTML = '';
+    if (totalExpense === 0) { 
+      catDiv.innerHTML = `<div class="empty-msg">支出データがありません。</div>`; 
+      return; 
+    }
+    
     const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+    
+    // 円グラフ描画用のCSSグラデーション文字列を生成
+    let conicGradientParts = [];
+    let cumulativePercent = 0;
+    let listHtml = '';
+
     sortedCats.forEach(([catName, amount]) => {
-      const percent = Math.round((amount / totalExpense) * 100);
+      const percent = (amount / totalExpense) * 100;
+      const roundPercent = Math.round(percent);
       const catColor = getCategoryColor('expense', catName);
-      catDiv.innerHTML += `
+      
+      // 円グラフの扇形部分を追加
+      conicGradientParts.push(`${catColor} ${cumulativePercent}% ${cumulativePercent + percent}%`);
+      cumulativePercent += percent;
+      
+      // 従来のバーグラフ部分も生成
+      listHtml += `
         <div class="cat-bar-container">
           <div class="cat-bar-header">
             <div class="cat-label-wrap"><div class="cat-small-badge" style="background-color: ${catColor};"></div><span>${catName}</span></div>
-            <span>¥${amount.toLocaleString()} <span style="color:#888; font-size:11px;">(${percent}%)</span></span>
+            <span>¥${amount.toLocaleString()} <span style="color:#888; font-size:11px;">(${roundPercent}%)</span></span>
           </div>
-          <div class="cat-bar-bg"><div class="cat-bar-fill" style="width: ${percent}%; background-color: ${catColor};"></div></div>
+          <div class="cat-bar-bg"><div class="cat-bar-fill" style="width: ${roundPercent}%; background-color: ${catColor};"></div></div>
         </div>
       `;
     });
+
+    const gradientStr = `conic-gradient(${conicGradientParts.join(', ')})`;
+
+    // 円グラフのHTMLを追加
+    let graphHtml = `
+      <div style="display: flex; justify-content: center; margin-bottom: 25px; margin-top: 10px;">
+        <div style="width: 160px; height: 160px; border-radius: 50%; background: ${gradientStr}; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"></div>
+      </div>
+    `;
+
+    catDiv.innerHTML = graphHtml + listHtml;
   }
 
 // --- サブスク管理モーダル ---
