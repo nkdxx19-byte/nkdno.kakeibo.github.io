@@ -241,6 +241,17 @@
     background-color: transparent;
   }
 
+/* カレンダー表示用スタイル */
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-top: 5px; }
+  .cal-header { background: rgba(0,0,0,0.03); text-align: center; font-size: 11px; font-weight: bold; padding: 6px 0; color: var(--text-sub); }
+  .cal-day { background: var(--bg-panel); min-height: 65px; padding: 4px; display: flex; flex-direction: column; }
+  .cal-day.empty { background: rgba(0,0,0,0.02); }
+  .cal-date { font-size: 11px; font-weight: bold; margin-bottom: 2px; text-align: left; color: var(--text-sub); }
+  .cal-day.today .cal-date { color: white; background: var(--text-main); border-radius: 50%; width: 18px; height: 18px; display: inline-flex; justify-content: center; align-items: center; }
+  .cal-money { font-size: 10px; text-align: right; margin-top: auto; font-weight: bold; line-height: 1.2; word-break: break-all; }
+  .cal-money.inc { color: var(--income); }
+  .cal-money.exp { color: var(--expense); }
+
 </style>
 </head>
 <body>
@@ -372,12 +383,13 @@
   <!-- 表示切り替えタブ -->
   <div class="tabs">
     <button class="tab-btn active" id="tabHistory" onclick="switchTab('history')">📜 履歴</button>
+    <button class="tab-btn" id="tabCalendar" onclick="switchTab('calendar')">📅 カレンダー</button>
     <button class="tab-btn" id="tabCategory" onclick="switchTab('category')">📊 カテゴリ集計</button>
   </div>
 
-  <!-- 履歴・集計 表示エリア -->
   <div class="list-card">
     <div id="historyView"><div id="transactionList"></div></div>
+    <div id="calendarView" style="display:none; padding: 10px;"></div>
     <div id="categoryView" class="category-summary"><div id="categoryList"></div></div>
   </div>
 
@@ -668,8 +680,11 @@
 
   function switchTab(tab) {
     document.getElementById('tabHistory').classList.toggle('active', tab === 'history');
+    document.getElementById('tabCalendar').classList.toggle('active', tab === 'calendar');
     document.getElementById('tabCategory').classList.toggle('active', tab === 'category');
+    
     document.getElementById('historyView').style.display = tab === 'history' ? 'block' : 'none';
+    document.getElementById('calendarView').style.display = tab === 'calendar' ? 'block' : 'none';
     document.getElementById('categoryView').style.display = tab === 'category' ? 'block' : 'none';
   }
 
@@ -763,6 +778,73 @@
     }
   }
 
+// --- カレンダー描画処理 ---
+  function renderCalendar() {
+    const currentMonthVal = document.getElementById('monthInput').value; 
+    if (!currentMonthVal) return;
+    const [year, month] = currentMonthVal.split('-').map(Number);
+    
+    const firstDay = new Date(year, month - 1, 1).getDay(); 
+    const lastDate = new Date(year, month, 0).getDate(); 
+    
+    // 日ごとに収支を集計
+    const dailyData = {};
+    transactions.forEach(t => {
+      if (t.date.startsWith(currentMonthVal)) {
+        const day = parseInt(t.date.split('-')[2], 10);
+        if (!dailyData[day]) dailyData[day] = { income: 0, expense: 0 };
+        
+        // 移動や集計外は除外して計算
+        if (t.type === 'income' && !t.excludeFromSummary) dailyData[day].income += t.amount;
+        if (t.type === 'expense') dailyData[day].expense += t.amount;
+      }
+    });
+    
+    const todayObj = new Date();
+    const isCurrentMonth = (todayObj.getFullYear() === year && (todayObj.getMonth() + 1) === month);
+    const todayDate = todayObj.getDate();
+
+    let html = '<div class="cal-grid">';
+    const weeks = ['日', '月', '火', '水', '木', '金', '土'];
+    
+    // 曜日のヘッダー作成 (日:赤, 土:青)
+    weeks.forEach((w, i) => {
+      let color = 'var(--text-sub)';
+      if(i === 0) color = '#f44336';
+      if(i === 6) color = '#2196F3';
+      html += `<div class="cal-header" style="color:${color};">${w}</div>`;
+    });
+    
+    // 1日より前の空白マス
+    for (let i = 0; i < firstDay; i++) {
+      html += `<div class="cal-day empty"></div>`;
+    }
+    
+    // カレンダーの日付マスと金額
+    for (let d = 1; d <= lastDate; d++) {
+      const isTodayClass = (isCurrentMonth && d === todayDate) ? 'today' : '';
+      let dayHtml = `<div class="cal-day ${isTodayClass}"><div class="cal-date">${d}</div>`;
+      
+      if (dailyData[d]) {
+        if (dailyData[d].income > 0) dayHtml += `<div class="cal-money inc">+${dailyData[d].income.toLocaleString()}</div>`;
+        if (dailyData[d].expense > 0) dayHtml += `<div class="cal-money exp">-${dailyData[d].expense.toLocaleString()}</div>`;
+      }
+      
+      dayHtml += `</div>`;
+      html += dayHtml;
+    }
+    
+    // 月末以降の空白マス
+    const totalCells = firstDay + lastDate;
+    const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+    for(let i = 0; i < remaining; i++) {
+       html += `<div class="cal-day empty"></div>`;
+    }
+    
+    html += '</div>';
+    document.getElementById('calendarView').innerHTML = html;
+  }
+
   // --- 描画処理 ---
   function renderData() {
     renderAssets(); 
@@ -837,6 +919,7 @@
     mBalEl.style.color = monthlyBal >= 0 ? 'var(--income)' : 'var(--expense)';
 
     renderCategorySummary(categoryTotals, expense);
+    renderCalendar();
   }
 
   function renderAssets() {
